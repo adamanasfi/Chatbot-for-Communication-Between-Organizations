@@ -1,0 +1,32 @@
+{
+  "name": "agent2agent-typescript",
+  "version": "1.0.0",
+  "description": "Agent-to-Agent conversation using LangGraph A2A protocol in TypeScript",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/langgraph_agent.ts",
+    "build": "tsc",
+    "start": "node dist/langgraph_agent.js",
+    "conversation": "tsx src/a2a_conversation.ts"
+  },
+  "keywords": [
+    "langgraph",
+    "a2a",
+    "agent",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@langchain/core": "^1.0.4",
+    "@langchain/langgraph": "^1.0.2",
+    "@langchain/openai": "^1.1.0",
+    "dotenv": "^17.2.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
