@@ -1,12 +1,9 @@
-# redcrossv2/server.py
 import uvicorn
 import os
 
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
-from starlette.requests import Request
-from starlette.responses import JSONResponse
 
 from a2a.types import (
     AgentCapabilities,
@@ -16,6 +13,7 @@ from a2a.types import (
 
 from agent_executor import RedCrossExecutor
 from agent import RedCrossAgent
+from ui import register_ui_routes
 
 
 HOST = "127.0.0.1"
@@ -62,19 +60,7 @@ def build_server():
     )
 
     app = server.build()
-
-    async def employee_chat(request: Request):
-        body = await request.json()
-        text = str(body.get("text", "")).strip()
-        thread_id = str(body.get("thread_id", DEFAULT_EMPLOYEE_THREAD_ID))
-
-        if not text:
-            return JSONResponse({"error": "Missing non-empty 'text'"}, status_code=400)
-
-        reply = await shared_agent.run(text, thread_id=thread_id)
-        return JSONResponse({"reply": reply, "thread_id": thread_id})
-
-    app.add_route("/employee/chat", employee_chat, methods=["POST"])
+    register_ui_routes(app, shared_agent, DEFAULT_EMPLOYEE_THREAD_ID)
     return app
 
 
