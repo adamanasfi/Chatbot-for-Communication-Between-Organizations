@@ -67,7 +67,17 @@ class A2APeer:
         )
         resp = await self._client.send_message(req)  # type: ignore[union-attr]
 
-        result = resp.root.result  # Task or Message depending on server
+        root = getattr(resp, "root", None)
+        if not hasattr(root, "result"):
+            err = getattr(root, "error", None)
+            code = getattr(err, "code", "unknown_code")
+            message = getattr(err, "message", "unknown_error")
+            data = getattr(err, "data", None)
+            raise RuntimeError(
+                f"A2A JSON-RPC error code={code} message={message} data={data}"
+            )
+
+        result = root.result  # Task or Message depending on server
 
         # Extract text from artifacts/history/status (Agent Server most often uses history)
         peer_text = ""

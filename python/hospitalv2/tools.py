@@ -63,15 +63,11 @@ class HospitalA2ATools:
             "messages": [
                 AIMessage(
                     content=(
-                        # "SENDER: HOSPITAL_AGENT\n"
-                        # "MODE: REQUEST_INIT\n\n"
                         f"{request_text}"
                     )
                 ),
                 HumanMessage(
                     content=(
-                        # "SENDER: RED_CROSS_AGENT\n"
-                        # "MODE: REQUEST_REPLY\n\n"
                         f"{response_text}"
                     )
                 ),

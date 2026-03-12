@@ -2,85 +2,60 @@ from dotenv import load_dotenv
 load_dotenv() 
 
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 
-from tools import HospitalA2ATools
+from employee_tools import HospitalEmployeeTools
 
 
 class HospitalAgent:
 
     HOSPITAL_SYSTEM_PROMPT = """
-    You are the Hospital Coordination Agent in a peer-to-peer coordination setting with a Red Cross agent.
-    This is NOT a one-way request system. Both organizations may initiate communication and request
-    information from each other.
+    You are the Hospital Employee Assistant.
 
-    You are chatting with a hospital employee about ONE ongoing case.
+    You ONLY chat with a hospital employee.
+    You are NOT the inter-organization coordinator.
 
-    Your mission:
-    - Help the hospital employee manage the situation.
-    - Coordinate operationally with the Red Cross agent when external support,
-    confirmation, or shared situational awareness is needed.
+    Mission:
+    - Help the hospital employee manage one ongoing case.
+    - When external coordination is needed, call:
+      ask_hospital_coordinator(request_text: str)
+      This delegates to the local Hospital Coordinator Agent.
 
-    You may communicate with:
-    1) A hospital employee (internal chat)
-    2) The Red Cross agent (inter-organization coordination thread)
+    Tool usage policy:
+    - Use the tool only when the employee asks to contact Red Cross, or when
+      Red Cross information is required to proceed.
+    - Send concise operational requests only.
+    - Do not send full internal conversation logs.
 
-    Tool available:
-    - send_to_red_cross_a2a(request_text: str)
+    Security and privacy:
+    - Share minimum necessary information externally.
+    - Do not expose sensitive internal-only details unless operationally required.
 
-    If an incoming message contains:
-    SENDER: RED_CROSS_AGENT
-    MODE: REQUEST_REPLY
-    then you MUST reply inline and MUST NOT call send_to_red_cross_a2a. Otherwise, deadlock occurs.
-
-
-
-    How to use the tool:
-    Use the tool whenever the hospital needs to:
-    - request resources (ambulances, volunteers, logistics support)
-    - confirm Red Cross availability or ETA
-    - coordinate patient transfers or disaster logistics
-    - clarify plans that require Red Cross participation
-    - notify Red Cross about important status updates that affect them
-    - negotiate priorities or constraints
-    - request information the hospital cannot know internally
-
-    Rules:
-    - Do NOT send the entire hospital-employee conversation to Red Cross.
-    - Send only concise operational messages needed for coordination.
-    - Keep the inter-organization thread focused on the specific case.
-
-    When communicating with the Red Cross agent, use this structure:
-
-
-    After receiving a response from the Red Cross:
-    - Summarize the result clearly for the hospital employee.
-    - Highlight any missing information.
-    - Ask the employee for additional details if needed.
-
-    Keep responses concise, operational, and focused on coordination.
+    Response policy:
+    - After tool response, summarize clearly for the employee.
+    - Highlight unknowns, risks, and required follow-up.
+    - Keep answers concise, practical, and action-oriented.
     """.strip()
 
-    def __init__(self):
+    def __init__(self, coordinator_agent: Optional[Any] = None):
         self.llm = ChatOpenAI(
         model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
         temperature=0.2,
         )
 
         self.memory = MemorySaver()
-        self.tools_service = HospitalA2ATools(graph=None)
+        self.tools_service = HospitalEmployeeTools(coordinator_agent=coordinator_agent)
 
         self.graph = create_react_agent(
         model=self.llm,
-        tools=[self.tools_service.send_to_red_cross_a2a_tool],
+        tools=[self.tools_service.ask_hospital_coordinator_tool],
         prompt=self.HOSPITAL_SYSTEM_PROMPT,
         checkpointer=self.memory,
         )
-        self.tools_service.graph = self.graph
 
 
     async def run(
@@ -101,5 +76,3 @@ class HospitalAgent:
         if not messages:
             return "(no response)"
         return str(messages[-1].content)
-
-

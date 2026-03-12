@@ -4,7 +4,9 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse
 
 
-def register_ui_routes(app, shared_agent, default_employee_thread_id: str) -> None:
+def register_ui_routes(
+    app, employee_agent, coordinator_agent, default_employee_thread_id: str
+) -> None:
     def _msg_text(msg: Any) -> str:
         content = getattr(msg, "content", "")
         if isinstance(content, str):
@@ -19,22 +21,27 @@ def register_ui_routes(app, shared_agent, default_employee_thread_id: str) -> No
             return " ".join(parts)
         return str(content)
 
-    async def _read_thread_messages(thread_id: str, *, employee_view: bool = False):
+    async def _read_thread_messages(
+        agent_obj, thread_id: str, *, allowed_roles: set[str] | None = None
+    ):
         config = {"configurable": {"thread_id": thread_id}}
         state = None
-        if hasattr(shared_agent.graph, "aget_state"):
-            state = await shared_agent.graph.aget_state(config)
-        elif hasattr(shared_agent.graph, "get_state"):
-            state = shared_agent.graph.get_state(config)
+        if hasattr(agent_obj.graph, "aget_state"):
+            state = await agent_obj.graph.aget_state(config)
+        elif hasattr(agent_obj.graph, "get_state"):
+            state = agent_obj.graph.get_state(config)
 
         values = getattr(state, "values", None) or {}
         messages = values.get("messages", [])
         items = []
         for m in messages:
             role = str(getattr(m, "type", m.__class__.__name__)).lower()
-            if employee_view and role not in {"human", "ai"}:
+            if allowed_roles is not None and role not in allowed_roles:
                 continue
-            items.append({"role": role, "text": _msg_text(m)})
+            text = _msg_text(m).strip()
+            if not text:
+                continue
+            items.append({"role": role, "text": text})
         return items
 
     async def employee_chat(request: Request):
@@ -44,7 +51,7 @@ def register_ui_routes(app, shared_agent, default_employee_thread_id: str) -> No
         if not text:
             return JSONResponse({"error": "Missing non-empty 'text'"}, status_code=400)
 
-        reply = await shared_agent.run(text, thread_id=thread_id)
+        reply = await employee_agent.run(text, thread_id=thread_id)
         return JSONResponse({"reply": reply, "thread_id": thread_id})
 
     async def employee_history(request: Request):
@@ -52,14 +59,34 @@ def register_ui_routes(app, shared_agent, default_employee_thread_id: str) -> No
         return JSONResponse(
             {
                 "thread_id": thread_id,
-                "messages": await _read_thread_messages(thread_id, employee_view=True),
+                "messages": await _read_thread_messages(
+                    employee_agent, thread_id, allowed_roles={"human", "ai"}
+                ),
             }
         )
 
-    async def interagent_chat(request: Request):
-        thread_id = shared_agent.tools_service.interagent_thread_id
+    async def handoff_chat(request: Request):
+        # Hospital employee LLM -> Hospital coordinator LLM
+        thread_id = coordinator_agent.handoff_thread_id
         return JSONResponse(
-            {"thread_id": thread_id, "messages": await _read_thread_messages(thread_id)}
+            {
+                "thread_id": thread_id,
+                "messages": await _read_thread_messages(
+                    coordinator_agent, thread_id, allowed_roles={"human", "ai"}
+                ),
+            }
+        )
+
+    async def intercoord_chat(request: Request):
+        # Hospital coordinator LLM <-> Red Cross coordinator LLM
+        thread_id = coordinator_agent.intercoord_thread_id
+        return JSONResponse(
+            {
+                "thread_id": thread_id,
+                "messages": await _read_thread_messages(
+                    coordinator_agent, thread_id, allowed_roles={"human", "ai"}
+                ),
+            }
         )
 
     async def ui_page(request: Request):
@@ -99,7 +126,7 @@ def register_ui_routes(app, shared_agent, default_employee_thread_id: str) -> No
     }}
     .title h1 {{ margin:0; font-size:26px; letter-spacing:0.2px; }}
     .title small {{ color:var(--muted); font-weight:700; }}
-    .grid {{ margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:16px; }}
+    .grid {{ margin-top:16px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }}
     .panel {{
       background:var(--panel); border:1px solid #ffffff; border-radius:20px;
       padding:14px; box-shadow: 0 10px 25px #0d1f4014;
@@ -151,9 +178,14 @@ def register_ui_routes(app, shared_agent, default_employee_thread_id: str) -> No
         <div class="meta">This panel is interactive.</div>
       </section>
       <section class="panel">
-        <h2>Inter-Agent Thread (Read-Only)</h2>
-        <div id="interagentMessages" class="messages"></div>
-        <div class="meta">Hospital LLM ↔ Red Cross LLM (same thread visible in both org UIs).</div>
+        <h2>Hospital LLM -> Hospital Coordinator (Read-Only)</h2>
+        <div id="handoffMessages" class="messages"></div>
+        <div class="meta">Local delegation from employee assistant to coordinator.</div>
+      </section>
+      <section class="panel">
+        <h2>Hospital Coordinator <-> Red Cross Coordinator (Read-Only)</h2>
+        <div id="intercoordMessages" class="messages"></div>
+        <div class="meta">Cross-organization coordinator channel.</div>
       </section>
     </div>
   </div>
@@ -178,13 +210,24 @@ async function refreshEmployee() {{
   const data = await res.json();
   renderMessages(document.getElementById("employeeMessages"), data.messages || [], "employee");
 }}
-async function refreshInteragent() {{
-  const res = await fetch("/interagent/chat");
+async function refreshHandoff() {{
+  const res = await fetch("/handoff/chat");
   const data = await res.json();
-  renderMessages(document.getElementById("interagentMessages"), data.messages || [], "interagent");
+  renderMessages(document.getElementById("handoffMessages"), data.messages || [], "interagent");
+}}
+async function refreshIntercoord() {{
+  const res = await fetch("/intercoord/chat");
+  const data = await res.json();
+  renderMessages(document.getElementById("intercoordMessages"), data.messages || [], "interagent");
 }}
 async function refreshAll() {{
-  try {{ await Promise.all([refreshEmployee(), refreshInteragent()]); }} catch (e) {{}}
+  try {{
+    await Promise.all([
+      refreshEmployee(),
+      refreshHandoff(),
+      refreshIntercoord(),
+    ]);
+  }} catch (e) {{}}
 }}
 document.getElementById("employeeForm").addEventListener("submit", async (ev) => {{
   ev.preventDefault();
@@ -208,5 +251,6 @@ setInterval(refreshAll, 1500);
 
     app.add_route("/employee/chat", employee_chat, methods=["POST"])
     app.add_route("/employee/history", employee_history, methods=["GET"])
-    app.add_route("/interagent/chat", interagent_chat, methods=["GET"])
+    app.add_route("/handoff/chat", handoff_chat, methods=["GET"])
+    app.add_route("/intercoord/chat", intercoord_chat, methods=["GET"])
     app.add_route("/ui", ui_page, methods=["GET"])

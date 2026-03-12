@@ -13,6 +13,7 @@ from a2a.types import (
 
 from agent_executor import RedCrossExecutor
 from agent import RedCrossAgent
+from coordinator_agent import RedCrossCoordinatorAgent
 from ui import register_ui_routes
 
 
@@ -47,10 +48,11 @@ def build_agent_card() -> AgentCard:
 
 
 def build_server():
-    shared_agent = RedCrossAgent()
+    coordinator_agent = RedCrossCoordinatorAgent()
+    employee_agent = RedCrossAgent(coordinator_agent=coordinator_agent)
 
     request_handler = DefaultRequestHandler(
-        agent_executor=RedCrossExecutor(agent=shared_agent),
+        agent_executor=RedCrossExecutor(agent=coordinator_agent),
         task_store=InMemoryTaskStore(),
     )
 
@@ -60,7 +62,7 @@ def build_server():
     )
 
     app = server.build()
-    register_ui_routes(app, shared_agent, DEFAULT_EMPLOYEE_THREAD_ID)
+    register_ui_routes(app, employee_agent, coordinator_agent, DEFAULT_EMPLOYEE_THREAD_ID)
     return app
 
 

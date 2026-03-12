@@ -13,6 +13,7 @@ from a2a.types import (
 
 from agent_executor import HospitalExecutor
 from agent import HospitalAgent
+from coordinator_agent import HospitalCoordinatorAgent
 from ui import register_ui_routes
 
 
@@ -50,10 +51,11 @@ def build_agent_card():
 
 
 def build_server():
-    shared_agent = HospitalAgent()
+    coordinator_agent = HospitalCoordinatorAgent()
+    employee_agent = HospitalAgent(coordinator_agent=coordinator_agent)
 
     request_handler = DefaultRequestHandler(
-        agent_executor=HospitalExecutor(agent=shared_agent),
+        agent_executor=HospitalExecutor(agent=coordinator_agent),
         task_store=InMemoryTaskStore(),
     )
 
@@ -63,7 +65,7 @@ def build_server():
     )
 
     app = server.build()
-    register_ui_routes(app, shared_agent, DEFAULT_EMPLOYEE_THREAD_ID)
+    register_ui_routes(app, employee_agent, coordinator_agent, DEFAULT_EMPLOYEE_THREAD_ID)
     return app
 
 

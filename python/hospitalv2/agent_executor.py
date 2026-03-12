@@ -8,7 +8,7 @@ from a2a.types import InternalError, UnsupportedOperationError
 import os
 from typing import Optional
 
-from agent import HospitalAgent
+from coordinator_agent import HospitalCoordinatorAgent
 
 VISUALIZE_GRAPH_INPUT = os.getenv("VISUALIZE_GRAPH_INPUT", "true").lower() == "true"
 
@@ -17,7 +17,7 @@ async def _visualize_stored_chat(label: str, agent) -> None:
     if not VISUALIZE_GRAPH_INPUT:
         return
 
-    thread_id = getattr(agent.tools_service, "interagent_thread_id", None)
+    thread_id = getattr(agent, "intercoord_thread_id", None)
     if not thread_id:
         print(f"\n=== {label}: stored chat unavailable (missing thread id) ===")
         return
@@ -46,8 +46,8 @@ async def _visualize_stored_chat(label: str, agent) -> None:
 
 
 class HospitalExecutor(AgentExecutor):
-    def __init__(self, agent: Optional[HospitalAgent] = None):
-        self.agent = agent or HospitalAgent()
+    def __init__(self, agent: Optional[HospitalCoordinatorAgent] = None):
+        self.agent = agent or HospitalCoordinatorAgent()
 
 
 
@@ -64,7 +64,7 @@ class HospitalExecutor(AgentExecutor):
 
             response = await self.agent.run(
                 user_text=msg,
-                thread_id=self.agent.tools_service.interagent_thread_id,
+                thread_id=self.agent.intercoord_thread_id,
             )
 
             await _visualize_stored_chat("HOSPITAL", self.agent)
