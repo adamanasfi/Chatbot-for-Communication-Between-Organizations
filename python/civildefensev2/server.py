@@ -11,24 +11,24 @@ from a2a.types import (
     AgentSkill,
 )
 
-from agent_executor import HospitalExecutor
-from agent import HospitalAgent
-from coordinator_agent import HospitalCoordinatorAgent
+from agent_executor import CivilDefenseExecutor
+from agent import CivilDefenseAgent
 from ui import register_ui_routes
+from db_listener import register_db_listener
 
 
 HOST = "127.0.0.1"
 PORT = 2024
-DEFAULT_EMPLOYEE_THREAD_ID = os.getenv("HOSPITAL_EMPLOYEE_THREAD_ID", "hospital-employee-1")
+DEFAULT_EMPLOYEE_THREAD_ID = os.getenv("CIVIL_DEFENSE_EMPLOYEE_THREAD_ID", "civil-defense-employee-1")
 
 
 def build_agent_card():
 
-    hospital_skill = AgentSkill(
-        id="hospital_coordination",
-        name="Hospital Disaster Coordination",
-        description="Coordinates hospital operations and communicates with external organizations such as the Red Cross.",
-        tags=["hospital", "disaster-response", "coordination"],
+    civil_defense_skill = AgentSkill(
+        id="civil_defense_coordination",
+        name="Civil Defense Coordination",
+        description="Coordinates civil defense operations and communicates with external organizations such as the Red Cross.",
+        tags=["civil-defense", "disaster-response", "coordination"],
         examples=[
             "Coordinate ambulance dispatch with Red Cross",
             "Ask Red Cross for available volunteers",
@@ -37,25 +37,24 @@ def build_agent_card():
     )
 
     agent_card = AgentCard(
-        name="Hospital Coordination Agent",
-        description="Hospital-side agent responsible for disaster coordination and inter-organizational communication.",
+        name="Civil Defense Coordination Agent",
+        description="Civil defense-side agent responsible for disaster coordination and inter-organizational communication.",
         url=f"http://{HOST}:{PORT}/",
         version="1.0.0",
         default_input_modes=["text/plain", "application/json"],
         default_output_modes=["text/plain", "application/json"],
         capabilities=AgentCapabilities(streaming=True),
-        skills=[hospital_skill],
+        skills=[civil_defense_skill],
     )
 
     return agent_card
 
 
 def build_server():
-    coordinator_agent = HospitalCoordinatorAgent()
-    employee_agent = HospitalAgent(coordinator_agent=coordinator_agent)
+    agent = CivilDefenseAgent()
 
     request_handler = DefaultRequestHandler(
-        agent_executor=HospitalExecutor(agent=coordinator_agent),
+        agent_executor=CivilDefenseExecutor(agent=agent),
         task_store=InMemoryTaskStore(),
     )
 
@@ -65,7 +64,8 @@ def build_server():
     )
 
     app = server.build()
-    register_ui_routes(app, employee_agent, coordinator_agent, DEFAULT_EMPLOYEE_THREAD_ID)
+    register_ui_routes(app, agent, DEFAULT_EMPLOYEE_THREAD_ID, os.getenv("CIVILDEFENSE_DB_DSN"))
+    register_db_listener(app, agent, os.getenv("CIVILDEFENSE_DB_DSN"), "civildefense_case_updates")
     return app
 
 

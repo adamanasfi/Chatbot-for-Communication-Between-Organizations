@@ -7,12 +7,12 @@ from a2a.utils.errors import ServerError
 from a2a.types import InternalError, UnsupportedOperationError
 from typing import Optional
 
-from agent import RedCrossAgent
+from agent import CivilDefenseAgent
 
 
-class RedCrossExecutor(AgentExecutor):
-    def __init__(self, agent: Optional[RedCrossAgent] = None):
-        self.agent = agent or RedCrossAgent()
+class CivilDefenseExecutor(AgentExecutor):
+    def __init__(self, agent: Optional[CivilDefenseAgent] = None):
+        self.agent = agent or CivilDefenseAgent()
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         try:
@@ -32,7 +32,7 @@ class RedCrossExecutor(AgentExecutor):
 
             await updater.add_artifact(
                 [Part(root=TextPart(text=str(response)))],
-                name="redcross_reply",
+                name="civil_defense_reply",
             )
             await updater.complete()
 

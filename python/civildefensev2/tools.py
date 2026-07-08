@@ -9,11 +9,11 @@ from langchain_core.tools import tool
 from A2A_peer import A2APeer
 
 
-class HospitalA2ATools:
+class CivilDefenseA2ATools:
     def __init__(self, graph: Optional[Any], interagent_thread_id: Optional[str] = None):
         self.graph = graph
         self.interagent_thread_id = interagent_thread_id or os.getenv(
-            "INTERAGENT_THREAD_ID", "hospital_redcross_case_1"
+            "INTERAGENT_THREAD_ID", "civil_defense_redcross_case_1"
         )
         self.red_cross_peer = A2APeer(
             base_url=os.getenv("RED_CROSS_BASE_URL", "http://127.0.0.1:2025")
@@ -37,7 +37,7 @@ class HospitalA2ATools:
         values = getattr(state, "values", None) or {}
         messages = values.get("messages", [])
         print(
-            f"\n=== HOSPITAL interagent state {stage} "
+            f"\n=== CIVIL DEFENSE interagent state {stage} "
             f"({self.interagent_thread_id}) ==="
         )
         if not messages:
@@ -57,8 +57,8 @@ class HospitalA2ATools:
 
         config = {"configurable": {"thread_id": self.interagent_thread_id}}
 
-        # Hospital-local memory projection:
-        # hospital outbound -> AIMessage, red cross reply -> HumanMessage.
+        # Civil Defense-local memory projection:
+        # civil defense outbound -> AIMessage, red cross reply -> HumanMessage.
         values = {
             "messages": [
                 AIMessage(
@@ -84,10 +84,10 @@ class HospitalA2ATools:
 
     async def send_to_red_cross_a2a(self, request_text: str) -> str:
         """
-        Hospital -> Red Cross (A2A)
+        Civil Defense -> Red Cross (A2A)
         """
         tagged_text = (
-            "SENDER: HOSPITAL_AGENT\n"
+            "SENDER: CIVIL_DEFENSE_AGENT\n"
             "MODE: REQUEST_REPLY\n\n"
             f"{request_text}"
         )

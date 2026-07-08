@@ -13,8 +13,8 @@ from a2a.types import (
 
 from agent_executor import RedCrossExecutor
 from agent import RedCrossAgent
-from coordinator_agent import RedCrossCoordinatorAgent
 from ui import register_ui_routes
+from db_listener import register_db_listener
 
 
 HOST = "127.0.0.1"
@@ -26,11 +26,11 @@ def build_agent_card() -> AgentCard:
     red_cross_skill = AgentSkill(
         id="red_cross_coordination",
         name="Red Cross Disaster Coordination",
-        description="Coordinates Red Cross operations and communicates with partner organizations such as hospitals.",
+        description="Coordinates Red Cross operations and communicates with partner organizations such as civil defense.",
         tags=["red-cross", "disaster-response", "coordination", "logistics"],
         examples=[
-            "Coordinate ambulance dispatch with hospital",
-            "Request hospital receiving instructions",
+            "Coordinate ambulance dispatch with civil defense",
+            "Request civil defense receiving instructions",
             "Negotiate priorities across multiple incidents",
         ],
     )
@@ -48,11 +48,10 @@ def build_agent_card() -> AgentCard:
 
 
 def build_server():
-    coordinator_agent = RedCrossCoordinatorAgent()
-    employee_agent = RedCrossAgent(coordinator_agent=coordinator_agent)
+    agent = RedCrossAgent()
 
     request_handler = DefaultRequestHandler(
-        agent_executor=RedCrossExecutor(agent=coordinator_agent),
+        agent_executor=RedCrossExecutor(agent=agent),
         task_store=InMemoryTaskStore(),
     )
 
@@ -62,7 +61,8 @@ def build_server():
     )
 
     app = server.build()
-    register_ui_routes(app, employee_agent, coordinator_agent, DEFAULT_EMPLOYEE_THREAD_ID)
+    register_ui_routes(app, agent, DEFAULT_EMPLOYEE_THREAD_ID, os.getenv("REDCROSS_DB_DSN"))
+    register_db_listener(app, agent, os.getenv("REDCROSS_DB_DSN"), "redcross_case_updates")
     return app
 
 

@@ -13,12 +13,12 @@ class RedCrossA2ATools:
     def __init__(self, graph: Optional[Any], interagent_thread_id: Optional[str] = None):
         self.graph = graph
         self.interagent_thread_id = interagent_thread_id or os.getenv(
-            "INTERAGENT_THREAD_ID", "hospital_redcross_case_1"
+            "INTERAGENT_THREAD_ID", "civil_defense_redcross_case_1"
         )
-        self.hospital_peer = A2APeer(
-            base_url=os.getenv("HOSPITAL_BASE_URL", "http://127.0.0.1:2024")
+        self.civil_defense_peer = A2APeer(
+            base_url=os.getenv("CIVIL_DEFENSE_BASE_URL", "http://127.0.0.1:2024")
         )
-        self.send_to_hospital_a2a_tool = tool(self.send_to_hospital_a2a)
+        self.send_to_civil_defense_a2a_tool = tool(self.send_to_civil_defense_a2a)
         self.visualize_interagent_state = (
             os.getenv("VISUALIZE_INTERAGENT_STATE", "true").lower() == "true"
         )
@@ -58,7 +58,7 @@ class RedCrossA2ATools:
         config = {"configurable": {"thread_id": self.interagent_thread_id}}
 
         # RedCross-local memory projection:
-        # red cross outbound -> AIMessage, hospital reply -> HumanMessage.
+        # red cross outbound -> AIMessage, civil defense reply -> HumanMessage.
         values = {
             "messages": [
                 AIMessage(
@@ -82,9 +82,9 @@ class RedCrossA2ATools:
             self.graph.update_state(config, values, as_node="tools")
         await self._print_interagent_state("AFTER update_state")
 
-    async def send_to_hospital_a2a(self, message_text: str) -> str:
+    async def send_to_civil_defense_a2a(self, message_text: str) -> str:
         """
-        Red Cross -> Hospital (A2A)
+        Red Cross -> Civil Defense (A2A)
         """
         tagged_text = (
             "SENDER: RED_CROSS_AGENT\n"
@@ -93,14 +93,14 @@ class RedCrossA2ATools:
         )
 
         try:
-            response_text, _, _ = await self.hospital_peer.send_text(
+            response_text, _, _ = await self.civil_defense_peer.send_text(
                 text=tagged_text,
                 context_id=self.interagent_thread_id,
                 role="user",
             )
         except Exception as e:
             response_text = (
-                f"[A2A_ERROR] Could not contact Hospital: {type(e).__name__}: {e}"
+                f"[A2A_ERROR] Could not contact Civil Defense: {type(e).__name__}: {e}"
             )
 
         await self._append_to_interagent_memory(message_text, response_text)

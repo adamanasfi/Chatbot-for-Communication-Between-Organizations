@@ -149,12 +149,12 @@ def register_ui_routes(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Red Cross Coordination Console</title>
+  <title>Civil Defense Coordination Console</title>
   <style>
     :root {{
-      --bg0:#fff4f1; --bg1:#ffdeda; --ink:#3a1210; --muted:#7a4943;
-      --panel:#ffffffcc; --accent:#d73f28; --accent-soft:#ffd8d1;
-      --peer:#2a6de3; --peer-soft:#d6e4ff;
+      --bg0:#f3f7ff; --bg1:#dfeafe; --ink:#12233f; --muted:#5a6a86;
+      --panel:#ffffffcc; --accent:#1f6fe5; --accent-soft:#cfe0ff;
+      --peer:#e64f3a; --peer-soft:#ffd9d2;
       --green:#2a9d5c;
     }}
     * {{ box-sizing:border-box; }}
@@ -162,17 +162,17 @@ def register_ui_routes(
       margin:0; color:var(--ink);
       font-family:"Trebuchet MS","Segoe UI",sans-serif; font-size:18px;
       background:
-        radial-gradient(circle at 80% 8%, #fffefb 0%, transparent 44%),
-        linear-gradient(155deg, var(--bg0), var(--bg1));
+        radial-gradient(circle at 15% 10%, #ffffff 0%, transparent 45%),
+        linear-gradient(140deg, var(--bg0), var(--bg1));
       min-height:100vh;
     }}
     .wrap {{ max-width:1200px; margin:32px auto; padding:0 18px; }}
 
     /* title */
     .title {{
-      background:var(--panel); border:1px solid #fff4f2;
+      background:var(--panel); border:1px solid #ffffff;
       border-radius:22px; padding:16px 20px; backdrop-filter:blur(8px);
-      box-shadow:0 10px 35px #40130d18;
+      box-shadow:0 10px 35px #0d1f4018;
       display:flex; justify-content:space-between; align-items:center;
     }}
     .title h1 {{ margin:0; font-size:34px; letter-spacing:0.2px; }}
@@ -184,35 +184,35 @@ def register_ui_routes(
     .tab {{
       border:none; border-radius:10px; padding:8px 22px;
       font-weight:700; font-size:16px; cursor:pointer;
-      background:#f0e8e6; color:var(--muted); transition:background 0.15s;
+      background:#e8eef8; color:var(--muted); transition:background 0.15s;
     }}
     .tab.active {{ background:var(--accent); color:white; }}
 
     /* chat grid */
     .grid {{ margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:16px; }}
     .panel {{
-      background:var(--panel); border:1px solid #fff3ef; border-radius:20px;
-      padding:14px; box-shadow:0 10px 25px #40130d14;
+      background:var(--panel); border:1px solid #ffffff; border-radius:20px;
+      padding:14px; box-shadow:0 10px 25px #0d1f4014;
       min-height:68vh; display:flex; flex-direction:column;
     }}
     .panel h2 {{ margin:4px 0 10px; font-size:24px; }}
     .messages {{
       flex:1; overflow:auto; padding:6px 6px 12px;
-      border-radius:14px; background:#fff9f7; border:1px solid #ffe6e0;
+      border-radius:14px; background:#f8fbff; border:1px solid #e6eefc;
     }}
     .bubble {{
       max-width:82%; padding:10px 12px; border-radius:12px;
       margin:8px 0; white-space:pre-wrap; line-height:1.4; font-size:19px;
       box-shadow:0 2px 8px #00000010;
     }}
-    .human    {{ margin-left:auto;  background:var(--accent);      color:white; }}
-    .ai       {{ margin-right:auto; background:var(--accent-soft);              }}
-    .h-human  {{ margin-left:auto;  background:var(--peer);         color:white; }}
-    .h-ai     {{ margin-right:auto; background:var(--peer-soft);                }}
+    .human       {{ margin-left:auto;  background:var(--accent);      color:white; }}
+    .ai          {{ margin-right:auto; background:var(--accent-soft);              }}
+    .cross-human {{ margin-left:auto;  background:var(--peer);         color:white; }}
+    .cross-ai    {{ margin-right:auto; background:var(--peer-soft);                }}
     form {{ display:flex; gap:10px; margin-top:12px; }}
     textarea {{
       flex:1; resize:vertical; min-height:52px; max-height:130px;
-      border:1px solid #f1c9c0; border-radius:12px; padding:10px;
+      border:1px solid #cad8f6; border-radius:12px; padding:10px;
       font:inherit; font-size:18px; outline:none;
     }}
     button {{
@@ -225,17 +225,17 @@ def register_ui_routes(
     /* database view */
     .db-wrap {{ margin-top:16px; }}
     .db-panel {{
-      background:var(--panel); border:1px solid #fff3ef; border-radius:20px;
-      padding:20px; box-shadow:0 10px 25px #40130d14;
+      background:var(--panel); border:1px solid #ffffff; border-radius:20px;
+      padding:20px; box-shadow:0 10px 25px #0d1f4014;
     }}
     .db-panel h2 {{ margin:0 0 16px; font-size:24px; }}
     .add-form {{
       display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; align-items:center;
-      background:#fff9f7; border:1px solid #ffe6e0;
+      background:#f8fbff; border:1px solid #e6eefc;
       border-radius:14px; padding:12px;
     }}
     .add-form input {{
-      flex:1; min-width:110px; border:1px solid #f1c9c0; border-radius:10px;
+      flex:1; min-width:110px; border:1px solid #cad8f6; border-radius:10px;
       padding:8px 12px; font:inherit; font-size:16px; outline:none;
     }}
     .add-form button {{
@@ -249,28 +249,28 @@ def register_ui_routes(
     }}
     thead th:first-child {{ border-radius:10px 0 0 0; }}
     thead th:last-child  {{ border-radius:0 10px 0 0; }}
-    tbody td {{ padding:10px 12px; border-bottom:1px solid #ffe6e0; vertical-align:middle; }}
+    tbody td {{ padding:10px 12px; border-bottom:1px solid #e6eefc; vertical-align:middle; }}
     tbody tr:last-child td {{ border-bottom:none; }}
-    tbody tr:hover td {{ background:#fff4f1; }}
+    tbody tr:hover td {{ background:#f3f7ff; }}
     tbody td input {{
-      width:100%; border:1px solid #f1c9c0; border-radius:8px;
+      width:100%; border:1px solid #cad8f6; border-radius:8px;
       padding:4px 8px; font:inherit; font-size:16px; outline:none;
     }}
     .btn {{
       border:none; color:white; border-radius:8px;
       padding:5px 14px; font-weight:700; font-size:14px; cursor:pointer; margin:0 2px;
     }}
-    .btn-edit   {{ background:var(--peer);   }}
-    .btn-del    {{ background:#c0392b;        }}
-    .btn-save   {{ background:var(--green);   }}
-    .btn-cancel {{ background:#888;           }}
+    .btn-edit   {{ background:var(--peer);  }}
+    .btn-del    {{ background:#c0392b;       }}
+    .btn-save   {{ background:var(--green);  }}
+    .btn-cancel {{ background:#888;          }}
   </style>
 </head>
 <body>
 <div class="wrap">
 
   <div class="title">
-    <h1>Red Cross Coordination Console</h1>
+    <h1>Civil Defense Coordination Console</h1>
     <div class="title-right">
       <small>Employee thread: {default_employee_thread_id}</small>
       <div class="tabs">
@@ -284,16 +284,16 @@ def register_ui_routes(
   <div id="chatView">
     <div class="grid">
       <section class="panel">
-        <h2>Red Cross Employee ↔ Red Cross Agent</h2>
+        <h2>Civil Defense Employee ↔ Civil Defense Agent</h2>
         <div id="employeeMessages" class="messages"></div>
         <form id="employeeForm">
-          <textarea id="employeeInput" placeholder="Ask Red Cross agent..."></textarea>
+          <textarea id="employeeInput" placeholder="Ask Civil Defense agent..."></textarea>
           <button type="submit">Send</button>
         </form>
         <div class="meta">This panel is interactive.</div>
       </section>
       <section class="panel">
-        <h2>Red Cross Agent &lt;-&gt; Civil Defense Agent (Read-Only)</h2>
+        <h2>Civil Defense Agent &lt;-&gt; Red Cross Agent (Read-Only)</h2>
         <div id="intercoordMessages" class="messages"></div>
         <div class="meta">Cross-organization coordination channel.</div>
       </section>
@@ -369,7 +369,7 @@ function renderMessages(el, messages, mode) {{
     if (mode === "employee" || mode === "handoff")
       cls = role.includes("human") ? "human" : "ai";
     if (mode === "interagent")
-      cls = role.includes("human") ? "h-human" : "h-ai";
+      cls = role.includes("human") ? "cross-human" : "cross-ai";
     return `<div class="bubble ${{cls}}">${{esc(m.text)}}</div>`;
   }}).join("");
   el.innerHTML = html || `<div class="meta">No messages yet.</div>`;
