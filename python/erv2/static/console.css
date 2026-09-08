@@ -1,0 +1,320 @@
+/* ER identity: teal accent. Structural styles live in
+   /common-static/console-base.css -- this file only overrides the
+   design tokens and adds ER-only components (the Triage tab). */
+
+:root {
+  --accent: #20b8c4;
+  --accent-soft: #123e45;
+  --peer: #93a8ff;
+  --peer-soft: #202a4b;
+  --brand-logo: url("/common-static/assets/logo-er.svg");
+  --peer-logo: url("/common-static/assets/logo-hcc.svg");
+}
+
+/* ---------------------------------------------------------------- triage view */
+
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.compare-grid .triage-panel { margin-bottom: 0; }
+@media (max-width: 980px) { .compare-grid { grid-template-columns: 1fr; } }
+
+.bar-list { display: flex; flex-direction: column; gap: 12px; }
+.triage-resource-groups {
+  display: grid;
+  gap: 16px;
+}
+.triage-resource-groups section {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--surface-glow) 64%, var(--surface));
+}
+.triage-resource-groups h3 {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 850;
+}
+.resource-bar-empty {
+  padding: 8px 0;
+  font-weight: 700;
+}
+.bar-row { display: flex; flex-direction: column; gap: 6px; }
+.bar-row .bar-label { display: flex; justify-content: space-between; font-size: 15px; font-weight: 750; }
+.bar-row .bar-label .qty { color: var(--muted); font-weight: 750; }
+.bar-track {
+  height: 10px; border-radius: 999px;
+  background: var(--bg-strong);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(16, 24, 32, 0.08);
+}
+.bar-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), #31a7a2);
+  transition: width 0.3s ease;
+}
+
+.pie-wrap {
+  min-height: 390px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  flex-wrap: wrap;
+}
+.pie-wrap svg {
+  flex: 0 0 auto;
+  filter: drop-shadow(0 10px 18px rgba(16, 24, 32, 0.12));
+}
+.pie-slice-label {
+  font-size: 17px; font-weight: 850; fill: white; text-anchor: middle;
+  dominant-baseline: middle; paint-order: stroke; stroke: #0006; stroke-width: 2px;
+}
+.pie-legend { display: flex; flex-direction: column; gap: 10px; min-width: 260px; }
+.pie-legend .row {
+  display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 800;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.pie-legend .swatch { width: 14px; height: 14px; border-radius: 5px; flex: 0 0 auto; }
+.pie-legend .row .count { color: var(--ink); font-weight: 850; margin-left: auto; }
+
+.acuity-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(220px, 1fr));
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.acuity-lane {
+  min-height: 260px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-glow) 66%, var(--surface));
+  padding: 14px;
+}
+.acuity-lane-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.acuity-lane-head .swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 5px;
+}
+.acuity-lane-head h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 850;
+}
+.acuity-lane-head strong {
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.acuity-cards {
+  display: grid;
+  gap: 10px;
+}
+.patient-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+.patient-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+.patient-card-head strong { color: var(--accent); }
+.patient-card p {
+  margin: 8px 0 10px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+.vitals-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.vitals-grid span {
+  border-radius: 10px;
+  padding: 8px;
+  background: var(--surface-subtle);
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 850;
+}
+.vitals-grid small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.signal-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.signal {
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.signal.no {
+  background: rgba(255, 107, 95, 0.14);
+  color: var(--danger);
+}
+.signal.yes {
+  background: rgba(71, 209, 140, 0.12);
+  color: var(--success);
+}
+.acuity-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.acuity-flag {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 850;
+}
+.acuity-flag.bad {
+  background: rgba(255, 107, 95, 0.16);
+  color: var(--danger);
+}
+.acuity-flag.warn {
+  background: rgba(242, 189, 75, 0.16);
+  color: var(--warning);
+}
+.acuity-flag.stable {
+  background: rgba(71, 209, 140, 0.12);
+  color: var(--success);
+}
+.triage-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.triage-pill.immediate {
+  background: rgba(192, 57, 43, 0.18);
+  color: #ff786d;
+}
+.triage-pill.delayed {
+  background: rgba(212, 160, 23, 0.18);
+  color: #ffd05b;
+}
+.triage-pill.minor {
+  background: rgba(42, 157, 92, 0.18);
+  color: #54dc91;
+}
+.triage-pill.expectant {
+  background: rgba(160, 166, 173, 0.16);
+  color: #c5cbd3;
+}
+.triage-pill.pending {
+  background: rgba(138, 151, 163, 0.14);
+  color: #9fb0bd;
+}
+.acuity-empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  padding: 18px 10px;
+  color: var(--muted);
+  text-align: center;
+  font-weight: 750;
+}
+
+
+/* ---------------------------------------------------------------- pathway graph (inline in chat) */
+
+.employee-chat-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.employee-chat-grid.with-pathway { grid-template-columns: 1fr 1fr; }
+@media (max-width: 980px) {
+  .employee-chat-grid.with-pathway { grid-template-columns: 1fr; }
+}
+
+.pathway-graph-wrap {
+  flex: 1; min-height: 0; overflow: auto; padding: 8px 0;
+}
+.pathway-graph-wrap svg { display: block; margin: 0 auto; }
+.message-pathway-link { color: var(--accent); font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+.pw-edge { stroke: var(--border-strong); stroke-width: 2; fill: none; }
+.pw-edge-label {
+  fill: var(--muted); font-size: 12px; font-weight: 700;
+  paint-order: stroke; stroke: var(--bg); stroke-width: 4px;
+}
+
+.pw-node-shape { stroke-width: 2; transition: stroke 0.15s, filter 0.15s; }
+.pw-node-decision  .pw-node-shape { fill: color-mix(in srgb, var(--warning) 22%, var(--surface)); stroke: var(--warning); }
+.pw-node-action    .pw-node-shape { fill: color-mix(in srgb, var(--accent) 18%, var(--surface)); stroke: var(--accent); }
+.pw-node-terminal-discharge .pw-node-shape { fill: color-mix(in srgb, var(--success) 20%, var(--surface)); stroke: var(--success); }
+.pw-node-terminal-admit     .pw-node-shape { fill: color-mix(in srgb, var(--warning) 26%, var(--surface)); stroke: var(--warning); }
+.pw-node-terminal-neutral   .pw-node-shape { fill: var(--surface-subtle); stroke: var(--border-strong); }
+
+.pw-node-label {
+  fill: var(--ink); font-size: 12.5px; font-weight: 700; text-anchor: middle;
+  paint-order: stroke; pointer-events: none;
+}
+.pw-node-title-line { font-size: 12.5px; font-weight: 800; fill: var(--ink); }
+.pw-node-bullet-line { font-size: 10.5px; font-weight: 500; fill: var(--muted); }
+
+.pw-node.visited .pw-node-shape { stroke-width: 3; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 55%, transparent)); }
+.pw-node.pending { cursor: pointer; }
+.pw-node.pending .pw-node-shape {
+  stroke: var(--accent); stroke-width: 3.5;
+  animation: pw-pulse 1.4s ease-in-out infinite;
+}
+@keyframes pw-pulse {
+  0%, 100% { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--accent) 60%, transparent)); }
+  50%      { filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 85%, transparent)); }
+}
+
+.pathway-reminder {
+  padding: 10px 12px; border-radius: var(--radius-md);
+  background: var(--surface-subtle); border: 1px solid var(--border);
+  font-size: 14px; white-space: pre-wrap; border-left: 3px solid var(--accent);
+}
+.pathway-reminder .pw-summary-line { margin: 2px 0; }
+.pathway-reminder .pw-option-detail { color: var(--muted); font-size: 12.5px; margin: 2px 0 2px 14px; }
+
+.pathway-chooser {
+  margin-top: 12px; display: flex; flex-direction: column; gap: 8px;
+}
+.pathway-option-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  width: 100%; text-align: left; padding: 10px 14px;
+  background: var(--surface-subtle); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md); cursor: pointer; color: var(--ink);
+  box-shadow: none;
+}
+.pathway-option-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+.pathway-option-btn strong { font-size: 14px; text-transform: capitalize; }
+.pathway-option-btn small { color: var(--muted); font-size: 12px; font-weight: 500; }

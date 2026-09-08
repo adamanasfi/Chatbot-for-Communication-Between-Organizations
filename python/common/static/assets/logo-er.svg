@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="ER logo">
+  <rect width="96" height="96" rx="24" fill="#0d6f7d"/>
+  <path d="M48 18v60M18 48h60" stroke="#fff" stroke-width="14" stroke-linecap="round"/>
+  <path d="M14 66h14l7-22 12 34 10-60 8 36h17" fill="none" stroke="#79f2ed" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

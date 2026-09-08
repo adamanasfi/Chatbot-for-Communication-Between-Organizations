@@ -2,17 +2,22 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
+import uuid
 from typing import List, Optional
 
 from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
+from langgraph.store.memory import InMemoryStore
+from langmem import create_manage_memory_tool, create_search_memory_tool
 
 from tools import RedCrossA2ATools
 
 
 class RedCrossAgent:
+
+    ORG = "red_cross"
 
     SYSTEM_PROMPT = """
     You are the Red Cross Coordination Agent.
@@ -42,10 +47,42 @@ class RedCrossAgent:
        - Acknowledge the change internally. Do NOT contact Civil Defense.
        - Only contact Civil Defense when the employee explicitly asks you to.
 
+    Memory tools available:
+    - manage_memory / search_memory for episodic, semantic, and procedural namespaces.
+    - Use them according to their individual instructions.
+
     Security and privacy:
     - Share minimum necessary information externally.
     - Do not expose sensitive internal details unless operationally required.
     """.strip()
+
+    _PROCEDURAL = {
+        "resource_discovery": {
+            "content": (
+                "Resource Discovery: To find out what resources the other organization has available. "
+                "1. Send a resource availability inquiry specifying the resource type and quantity needed. "
+                "2. Wait for their confirmation of current availability and any constraints. "
+                "3. Record the confirmed availability in semantic memory."
+            )
+        },
+        "resource_ordering": {
+            "content": (
+                "Resource Ordering: To formally request a resource from the other organization. "
+                "1. Confirm availability first through resource discovery. "
+                "2. Send a formal request including: resource type, quantity, delivery location, required time. "
+                "3. Await confirmation or counter-proposal. "
+                "4. Record the outcome in episodic memory."
+            )
+        },
+        "resource_deployment": {
+            "content": (
+                "Resource Deployment: To confirm and track resource deployment. "
+                "1. Once the other organization confirms dispatch, record the expected arrival time and location. "
+                "2. Notify the employee of the confirmed deployment details. "
+                "3. Update semantic memory with the current deployment status."
+            )
+        },
+    }
 
     def __init__(self):
         self.llm = ChatOpenAI(
@@ -56,14 +93,71 @@ class RedCrossAgent:
         self.intercoord_thread_id = os.getenv(
             "INTERCOORD_THREAD_ID", "civil_defense_redcross_coord_case_1"
         )
+
+        self.store = InMemoryStore(
+            index={"embed": "openai:text-embedding-3-small", "dims": 1536}
+        )
+
+        for key, value in self._PROCEDURAL.items():
+            self.store.put((self.ORG, "procedural"), key, value)
+
+        episodic_manage = create_manage_memory_tool(
+            namespace=(self.ORG, "episodic"),
+            instructions=(
+                "Record every exchange as a new entry: every message from the employee, "
+                "every coordination message sent to or received from the other organization, "
+                "and every DB event. Always create, never update or delete."
+            ),
+            actions_permitted=("create",),
+            store=self.store,
+        )
+        episodic_search = create_search_memory_tool(
+            namespace=(self.ORG, "episodic"),
+            instructions="Search to load past episodes into the context window.",
+            store=self.store,
+        )
+        semantic_manage = create_manage_memory_tool(
+            namespace=(self.ORG, "semantic"),
+            instructions=(
+                "Proactively call this tool whenever you learn a new fact during conversation: "
+                "who the employee is, their role, their responsibilities, facts about the other "
+                "organization's resources and constraints, or any other operationally relevant "
+                "information. Update entries when facts change. Delete entries that are no longer valid."
+            ),
+            actions_permitted=("create", "update", "delete"),
+            store=self.store,
+        )
+        semantic_search = create_search_memory_tool(
+            namespace=(self.ORG, "semantic"),
+            instructions="Recall relevant known facts.",
+            store=self.store,
+        )
+        procedural_search = create_search_memory_tool(
+            namespace=(self.ORG, "procedural"),
+            instructions=(
+                "Fetch the correct procedure to follow: resource discovery, "
+                "resource ordering, or resource deployment."
+            ),
+            store=self.store,
+        )
+
         self.tools_service = RedCrossA2ATools(
             graph=None, interagent_thread_id=self.intercoord_thread_id
         )
+
         self.graph = create_react_agent(
             model=self.llm,
-            tools=[self.tools_service.send_to_civil_defense_a2a_tool],
+            tools=[
+                self.tools_service.send_to_civil_defense_a2a_tool,
+                episodic_manage,
+                episodic_search,
+                semantic_manage,
+                semantic_search,
+                procedural_search,
+            ],
             prompt=self.SYSTEM_PROMPT,
             checkpointer=self.memory,
+            store=self.store,
         )
         self.tools_service.graph = self.graph
 
@@ -75,11 +169,19 @@ class RedCrossAgent:
     ) -> str:
         if messages is not None:
             inputs = {"messages": messages}
+            log_input = messages[0].content if messages else ""
         else:
             inputs = {"messages": [("user", user_text or "")]}
+            log_input = user_text or ""
         config = {"configurable": {"thread_id": thread_id}}
         response = await self.graph.ainvoke(inputs, config=config)
         out_messages: List[BaseMessage] = response.get("messages", [])
         if not out_messages:
             return "(no response)"
-        return str(out_messages[-1].content)
+        reply = str(out_messages[-1].content)
+        self.store.put(
+            (self.ORG, "episodic"),
+            str(uuid.uuid4()),
+            {"content": f"Input: {log_input}\nReply: {reply}"},
+        )
+        return reply

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="HCC logo">
+  <rect width="96" height="96" rx="24" fill="#263f67"/>
+  <path d="M48 18v18M48 60v18M18 48h18M60 48h18" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="48" cy="48" r="15" fill="#fff"/>
+  <circle cx="48" cy="48" r="7" fill="#6f63c6"/>
+  <circle cx="23" cy="48" r="8" fill="#8ed9ff"/>
+  <circle cx="73" cy="48" r="8" fill="#8ed9ff"/>
+  <circle cx="48" cy="23" r="8" fill="#8ed9ff"/>
+  <circle cx="48" cy="73" r="8" fill="#8ed9ff"/>
+</svg>

@@ -1,4 +1,5 @@
 import asyncpg
+import json
 from typing import Any
 
 from starlette.requests import Request
@@ -26,7 +27,7 @@ def register_ui_routes(
         return str(content)
 
     async def _read_thread_messages(
-        agent_obj, thread_id: str, *, allowed_roles: set[str] | None = None
+        agent_obj, thread_id: str, *, show_tools: bool = False
     ):
         config = {"configurable": {"thread_id": thread_id}}
         state = None
@@ -40,12 +41,33 @@ def register_ui_routes(
         items = []
         for m in messages:
             role = str(getattr(m, "type", m.__class__.__name__)).lower()
-            if allowed_roles is not None and role not in allowed_roles:
-                continue
-            text = _msg_text(m).strip()
-            if not text:
-                continue
-            items.append({"role": role, "text": text})
+            if role == "ai":
+                if show_tools:
+                    for tc in (getattr(m, "tool_calls", None) or []):
+                        args_str = json.dumps(tc.get("args", {}), ensure_ascii=False)
+                        items.append({"role": "tool_call", "text": f"{tc['name']}({args_str})"})
+                text = _msg_text(m).strip()
+                if text:
+                    items.append({"role": "ai", "text": text})
+            elif role == "tool" and show_tools:
+                text = _msg_text(m).strip()
+                if text:
+                    items.append({"role": "tool_result", "text": text})
+            elif role == "human":
+                text = _msg_text(m).strip()
+                if not text:
+                    continue
+                # Strip A2A header and reclassify as peer message
+                if text.startswith("SENDER:"):
+                    lines = text.splitlines()
+                    body = "\n".join(
+                        l for l in lines
+                        if not l.startswith("SENDER:") and not l.startswith("MODE:")
+                    ).strip()
+                    if body:
+                        items.append({"role": "h-human", "text": body})
+                else:
+                    items.append({"role": "human", "text": text})
         return items
 
     def _row_to_dict(row) -> dict:
@@ -69,19 +91,41 @@ def register_ui_routes(
         thread_id = request.query_params.get("thread_id", default_employee_thread_id)
         return JSONResponse({
             "thread_id": thread_id,
-            "messages": await _read_thread_messages(
-                agent, thread_id, allowed_roles={"human", "ai"}
-            ),
+            "messages": await _read_thread_messages(agent, thread_id, show_tools=True),
         })
 
     async def intercoord_chat(request: Request):
         thread_id = agent.intercoord_thread_id
         return JSONResponse({
             "thread_id": thread_id,
-            "messages": await _read_thread_messages(
-                agent, thread_id, allowed_roles={"human", "ai"}
-            ),
+            "messages": await _read_thread_messages(agent, thread_id),
         })
+
+    async def memory_view(request: Request):
+        ns = request.path_params["namespace"]
+        try:
+            items = agent.store.search((agent.ORG, ns), limit=200)
+            result = [
+                {
+                    "key": item.key,
+                    "value": item.value,
+                    "updated_at": item.updated_at.isoformat() if hasattr(item.updated_at, "isoformat") else str(item.updated_at),
+                }
+                for item in items
+            ]
+            if not result:
+                try:
+                    all_ns = [list(n) for n in agent.store.list_namespaces()]
+                except Exception:
+                    all_ns = []
+                return JSONResponse({"items": [], "debug_namespaces": all_ns})
+            return JSONResponse({"items": result})
+        except Exception as exc:
+            try:
+                all_ns = [list(n) for n in agent.store.list_namespaces()]
+            except Exception:
+                all_ns = []
+            return JSONResponse({"items": [], "error": str(exc), "debug_namespaces": all_ns})
 
     # ------------------------------------------------------------------ database routes
 
@@ -207,8 +251,8 @@ def register_ui_routes(
     }}
     .human       {{ margin-left:auto;  background:var(--accent);      color:white; }}
     .ai          {{ margin-right:auto; background:var(--accent-soft);              }}
-    .cross-human {{ margin-left:auto;  background:var(--peer);         color:white; }}
-    .cross-ai    {{ margin-right:auto; background:var(--peer-soft);                }}
+    .h-human {{ margin-left:auto;  background:var(--peer);         color:white; }}
+    .h-ai    {{ margin-right:auto; background:var(--peer-soft);                }}
     form {{ display:flex; gap:10px; margin-top:12px; }}
     textarea {{
       flex:1; resize:vertical; min-height:52px; max-height:130px;
@@ -221,6 +265,39 @@ def register_ui_routes(
     }}
     .meta {{ margin-top:6px; color:var(--muted); font-size:14px; }}
     @media (max-width:980px) {{ .grid {{ grid-template-columns:1fr; }} }}
+
+    /* tool call bubbles */
+    .tool-call {{
+      margin:6px 0; padding:6px 12px;
+      background:#f5f5f5; border:1px solid #ddd; border-radius:8px;
+      font-family:monospace; font-size:13px; color:#555;
+      white-space:pre-wrap; word-break:break-all;
+    }}
+    .tool-result {{
+      margin:2px 0 8px 12px; padding:4px 10px;
+      border-left:3px solid #ccc; font-size:13px;
+      color:#888; white-space:pre-wrap; word-break:break-word;
+    }}
+
+    /* memory view */
+    .memory-wrap {{ margin-top:16px; }}
+    .memory-grid {{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }}
+    .memory-section {{
+      background:var(--panel); border:1px solid #dde8ff; border-radius:20px;
+      padding:14px; box-shadow:0 10px 25px #0d1f4014;
+      max-height:75vh; display:flex; flex-direction:column;
+    }}
+    .memory-section h2 {{ margin:4px 0 10px; font-size:22px; }}
+    .memory-items {{ flex:1; overflow-y:auto; }}
+    .memory-item {{
+      background:#f3f7ff; border:1px solid #dde8ff; border-radius:10px;
+      padding:10px 12px; margin-bottom:8px;
+    }}
+    .memory-item .mem-content {{
+      color:var(--ink); font-size:15px; white-space:pre-wrap;
+      word-break:break-word; margin-bottom:4px;
+    }}
+    .memory-item .mem-meta {{ color:var(--muted); font-size:12px; }}
 
     /* database view */
     .db-wrap {{ margin-top:16px; }}
@@ -274,8 +351,9 @@ def register_ui_routes(
     <div class="title-right">
       <small>Employee thread: {default_employee_thread_id}</small>
       <div class="tabs">
-        <button class="tab active" id="tabChat" onclick="showChat()">Chat</button>
-        <button class="tab"        id="tabDB"   onclick="showDB()">Database</button>
+        <button class="tab active" id="tabChat"   onclick="showChat()">Chat</button>
+        <button class="tab"        id="tabDB"     onclick="showDB()">Database</button>
+        <button class="tab"        id="tabMemory" onclick="showMemory()">Memory</button>
       </div>
     </div>
   </div>
@@ -330,6 +408,24 @@ def register_ui_routes(
     </div>
   </div>
 
+  <!-- MEMORY VIEW -->
+  <div id="memoryView" style="display:none" class="memory-wrap">
+    <div class="memory-grid">
+      <div class="memory-section">
+        <h2>Semantic Memory</h2>
+        <div id="semanticItems" class="memory-items"></div>
+      </div>
+      <div class="memory-section">
+        <h2>Episodic Memory</h2>
+        <div id="episodicItems" class="memory-items"></div>
+      </div>
+      <div class="memory-section">
+        <h2>Procedural Memory</h2>
+        <div id="proceduralItems" class="memory-items"></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 <script>
 const EMPLOYEE_THREAD_ID = "{default_employee_thread_id}";
@@ -347,33 +443,73 @@ function esc(s) {{
 // ---- tab toggle ----
 function showChat() {{
   currentView = "chat";
-  document.getElementById("chatView").style.display = "";
-  document.getElementById("dbView").style.display   = "none";
+  document.getElementById("chatView").style.display   = "";
+  document.getElementById("dbView").style.display     = "none";
+  document.getElementById("memoryView").style.display = "none";
   document.getElementById("tabChat").classList.add("active");
   document.getElementById("tabDB").classList.remove("active");
+  document.getElementById("tabMemory").classList.remove("active");
 }}
 function showDB() {{
   currentView = "db";
-  document.getElementById("chatView").style.display = "none";
-  document.getElementById("dbView").style.display   = "";
+  document.getElementById("chatView").style.display   = "none";
+  document.getElementById("dbView").style.display     = "";
+  document.getElementById("memoryView").style.display = "none";
   document.getElementById("tabChat").classList.remove("active");
   document.getElementById("tabDB").classList.add("active");
+  document.getElementById("tabMemory").classList.remove("active");
   loadResources();
+}}
+function showMemory() {{
+  currentView = "memory";
+  document.getElementById("chatView").style.display   = "none";
+  document.getElementById("dbView").style.display     = "none";
+  document.getElementById("memoryView").style.display = "";
+  document.getElementById("tabChat").classList.remove("active");
+  document.getElementById("tabDB").classList.remove("active");
+  document.getElementById("tabMemory").classList.add("active");
+  loadAllMemory();
 }}
 
 // ---- chat ----
 function renderMessages(el, messages, mode) {{
   const html = messages.map(m => {{
     const role = (m.role || "").toLowerCase();
+    if (role === "tool_call")
+      return `<div class="tool-call">🔧 ${{esc(m.text)}}</div>`;
+    if (role === "tool_result")
+      return `<div class="tool-result">↩ ${{esc(m.text)}}</div>`;
     let cls = "ai";
-    if (mode === "employee" || mode === "handoff")
-      cls = role.includes("human") ? "human" : "ai";
-    if (mode === "interagent")
-      cls = role.includes("human") ? "cross-human" : "cross-ai";
+    if (mode === "employee") cls = role.includes("human") ? "human" : "ai";
+    if (mode === "interagent") cls = role.includes("human") ? "h-human" : "h-ai";
     return `<div class="bubble ${{cls}}">${{esc(m.text)}}</div>`;
   }}).join("");
   el.innerHTML = html || `<div class="meta">No messages yet.</div>`;
   el.scrollTop = el.scrollHeight;
+}}
+
+// ---- memory ----
+async function loadMemory(ns) {{
+  const data = await (await fetch(`/memory/${{ns}}`)).json();
+  const el = document.getElementById(`${{ns}}Items`);
+  const items = data.items || [];
+  if (!items.length) {{
+    el.innerHTML = '<div class="meta" style="padding:8px">No entries yet.</div>';
+    return;
+  }}
+  el.innerHTML = items.map(item => {{
+    const content = item.value?.content || JSON.stringify(item.value, null, 2);
+    const ts = (item.updated_at || "").substring(0, 19).replace("T", " ");
+    return `<div class="memory-item">
+      <div class="mem-content">${{esc(content)}}</div>
+      <div class="mem-meta">${{ts}}</div>
+    </div>`;
+  }}).join("");
+}}
+async function loadAllMemory() {{
+  await Promise.all(["semantic", "episodic", "procedural"].map(ns =>
+    loadMemory(ns).catch(() => {{}})
+  ));
 }}
 async function refreshEmployee() {{
   const res  = await fetch(`/employee/history?thread_id=${{encodeURIComponent(EMPLOYEE_THREAD_ID)}}`);
@@ -491,7 +627,8 @@ async function addResource() {{
 refreshAll();
 setInterval(() => {{
   if (currentView === "chat") refreshAll().catch(() => {{}});
-  else if (!editingId) loadResources().catch(() => {{}});
+  else if (currentView === "db" && !editingId) loadResources().catch(() => {{}});
+  else if (currentView === "memory") loadAllMemory().catch(() => {{}});
 }}, 1500);
 </script>
 </body>
@@ -503,6 +640,7 @@ setInterval(() => {{
     app.add_route("/employee/chat",    employee_chat,    methods=["POST"])
     app.add_route("/employee/history", employee_history, methods=["GET"])
     app.add_route("/intercoord/chat",  intercoord_chat,  methods=["GET"])
+    app.add_route("/memory/{namespace}", memory_view,    methods=["GET"])
     app.add_route("/db/resources",               db_resources,      methods=["GET", "POST"])
     app.add_route("/db/resources/{resource_id}", db_resource_by_id, methods=["PUT", "DELETE"])
     app.add_route("/ui", ui_page, methods=["GET"])

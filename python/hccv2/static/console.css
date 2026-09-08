@@ -1,0 +1,11 @@
+/* HCC identity: navy accent. Structural styles live in
+   /common-static/console-base.css. */
+
+:root {
+  --accent: #9badff;
+  --accent-soft: #202a4b;
+  --peer: #20b8c4;
+  --peer-soft: #123e45;
+  --brand-logo: url("/common-static/assets/logo-hcc.svg");
+  --peer-logo: url("/common-static/assets/logo-er.svg");
+}
