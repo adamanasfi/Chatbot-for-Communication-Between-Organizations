@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Civil Defense Coordination Console</title>
+  <link rel="stylesheet" href="/common-static/console-base.css?v=1" />
+  <link rel="stylesheet" href="/static/console.css?v=1" />
+</head>
+<body
+  data-employee-thread="__EMPLOYEE_THREAD_ID__"
+  data-console="civildefense"
+  data-human-label="Civil Defense Employee"
+  data-agent-label="Civil Defense Agent"
+  data-peer-label="Red Cross Agent"
+>
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">CD</div>
+      <div class="brand-text">
+        <h1>Civil Defense Console</h1>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="tab active" id="tabChat" data-tab="chat" onclick="showView('chat')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+        <span>Chat</span>
+      </button>
+      <button class="tab" id="tabDB" data-tab="db" onclick="showView('db')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+        <span>Database</span>
+      </button>
+      <button class="tab" id="tabVehicles" data-tab="vehicles" onclick="showView('vehicles')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l1.5-5.5A2 2 0 0 1 6.4 6h11.2a2 2 0 0 1 1.9 1.5L21 13"></path><path d="M3 13h18v4a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"></path><circle cx="7.5" cy="17.5" r="1.5"></circle><circle cx="16.5" cy="17.5" r="1.5"></circle></svg>
+        <span>Tracking</span>
+      </button>
+      <button class="tab" id="tabMemory" data-tab="memory" onclick="showView('memory')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+        <span>Memory</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <small>Thread: __EMPLOYEE_THREAD_ID__</small>
+    </div>
+  </aside>
+
+  <main class="main">
+
+  <!-- CHAT VIEW -->
+  <div id="chatView" data-view="chat">
+    <div id="chatHome" class="chat-home">
+      <div class="db-hero">
+        <h2>Chat Channels</h2>
+      </div>
+      <div class="chat-channel-options">
+        <button class="chat-channel-card" onclick="openChatChannel('employee')">
+          <span class="chat-card-icon own-channel"></span>
+          <span class="chat-card-copy">
+            <strong>Civil Defense Employee ↔ Civil Defense Agent</strong>
+            <small>Direct chat</small>
+          </span>
+          <span class="chat-card-badge active">Interactive</span>
+        </button>
+        <button class="chat-channel-card" onclick="openChatChannel('intercoord')">
+          <span class="chat-card-icon peer-channel"></span>
+          <span class="chat-card-copy">
+            <strong>Civil Defense Agent ↔ Red Cross Agent</strong>
+            <small>Coordination channel</small>
+          </span>
+          <span class="chat-card-badge readonly">Read-only</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="chat-detail" data-chat-detail="employee" style="display:none">
+      <div class="db-detail-head">
+        <button class="db-back" onclick="showChatHome()">←</button>
+      </div>
+      <section class="panel">
+        <h2>Civil Defense Employee ↔ Civil Defense Agent</h2>
+        <div id="employeeMessages" class="messages"></div>
+        <form id="employeeForm" class="agent-compose">
+          <textarea id="employeeInput" placeholder="Ask Civil Defense agent..."></textarea>
+          <button type="submit">Send</button>
+        </form>
+        <div class="meta">This panel is interactive.</div>
+      </section>
+    </div>
+
+    <div class="chat-detail" data-chat-detail="intercoord" style="display:none">
+      <div class="db-detail-head">
+        <button class="db-back" onclick="showChatHome()">←</button>
+      </div>
+      <section class="panel secondary">
+        <h2>Civil Defense Agent &lt;-&gt; Red Cross Agent (Read-Only)</h2>
+        <div id="intercoordMessages" class="messages"></div>
+        <div class="meta">Cross-organization coordination channel.</div>
+      </section>
+    </div>
+  </div>
+
+  <!-- DATABASE VIEW -->
+  <div id="dbView" data-view="db" style="display:none" class="db-wrap">
+    <div id="dbHome" class="db-home">
+      <div class="db-hero">
+        <h2>Database</h2>
+        <p>Select a table to review, edit, and keep operational data current.</p>
+      </div>
+      <div class="db-table-options">
+        <button class="db-table-card" onclick="openDbTable('resources')">
+          <span class="db-card-icon db-card-resources"></span>
+          <span class="db-card-copy">
+            <strong>Resources</strong>
+            <small>Equipment, personnel, availability, and location.</small>
+          </span>
+          <span class="db-card-arrow">→</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="db-panel" data-db-detail="resources" style="display:none">
+      <div class="db-detail-head">
+        <button class="db-back" onclick="showDbHome()">←</button>
+        <h2>Civil Defense Resources</h2>
+      </div>
+
+      <div id="resourceInsights" class="resource-insights"></div>
+
+      <div class="add-form">
+        <input id="newType"     placeholder="Resource type" />
+        <input id="newQty"      placeholder="Quantity" type="number" style="max-width:110px" />
+        <input id="newStatus"   placeholder="Status" />
+        <input id="newLocation" placeholder="Location" />
+        <button onclick="addResource()">+ Add</button>
+      </div>
+
+      <div id="resourcesBody" class="resource-sections"></div>
+    </div>
+  </div>
+
+  <!-- VEHICLE TRACKING VIEW -->
+  <div id="vehiclesView" data-view="vehicles" style="display:none" class="db-wrap">
+    <div class="db-panel">
+      <div class="db-detail-head">
+        <h2>Partner Vehicle Tracking</h2>
+      </div>
+
+      <div class="meta" style="margin-bottom:12px">
+        Read-only: positions are pushed here directly by partner orgs (e.g. Red Cross);
+        Civil Defense does not edit vehicle locations.
+      </div>
+      <div id="mapsKeyNotice" class="meta" style="margin-bottom:12px">
+        Google Maps API key not configured -- set CIVILDEFENSE_GOOGLE_MAPS_API_KEY in .env to enable the map.
+        The table below still works without it.
+      </div>
+      <div id="vehicleMap" class="vehicle-map"></div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Org</th>
+            <th>Vehicle ID</th>
+            <th>Label</th>
+            <th>Lat</th>
+            <th>Lng</th>
+            <th>Status</th>
+            <th>Updated</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="vehiclesBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MEMORY VIEW -->
+  <div id="memoryView" data-view="memory" style="display:none" class="memory-wrap">
+    <div class="memory-grid">
+      <div class="memory-section">
+        <h2>Semantic Memory</h2>
+        <div id="semanticItems" class="memory-items"></div>
+      </div>
+      <div class="memory-section">
+        <h2>Episodic Memory</h2>
+        <div id="episodicItems" class="memory-items"></div>
+      </div>
+      <div class="memory-section">
+        <h2>Procedural Memory</h2>
+        <div id="proceduralItems" class="memory-items"></div>
+      </div>
+    </div>
+  </div>
+
+  </main>
+</div>
+<script src="/common-static/console-base.js?v=1"></script>
+<script src="/static/console.js?v=1"></script>
+__GOOGLE_MAPS_SCRIPT__
+</body>
+</html>

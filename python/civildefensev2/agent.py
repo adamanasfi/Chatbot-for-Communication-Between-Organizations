@@ -13,6 +13,7 @@ from langgraph.store.memory import InMemoryStore
 from langmem import create_manage_memory_tool, create_search_memory_tool
 
 from tools import CivilDefenseA2ATools
+from vehicle_tracking_tools import VehicleTrackingTools
 
 
 class CivilDefenseAgent:
@@ -46,6 +47,13 @@ class CivilDefenseAgent:
        - A resource in the Civil Defense database has changed.
        - Acknowledge the change internally. Do NOT contact Red Cross.
        - Only contact Red Cross when the employee explicitly asks you to.
+
+    Partner vehicle tracking:
+    - list_tracked_vehicles looks up the latest known position of partner
+      orgs' vehicles (e.g. Red Cross ambulances) from a table Red Cross
+      pushes to directly -- this is a live lookup, not something you poll
+      on your own. Call it only when the employee actually asks where a
+      partner vehicle is right now.
 
     Memory tools available:
     - manage_memory / search_memory for episodic, semantic, and procedural namespaces.
@@ -144,11 +152,13 @@ class CivilDefenseAgent:
         self.tools_service = CivilDefenseA2ATools(
             graph=None, interagent_thread_id=self.intercoord_thread_id
         )
+        self.vehicle_tracking_tools = VehicleTrackingTools(dsn=os.getenv("CIVILDEFENSE_DB_DSN"))
 
         self.graph = create_react_agent(
             model=self.llm,
             tools=[
                 self.tools_service.send_to_red_cross_a2a_tool,
+                self.vehicle_tracking_tools.list_tracked_vehicles_tool,
                 episodic_manage,
                 episodic_search,
                 semantic_manage,

@@ -1,0 +1,46 @@
+/* Civil Defense identity: real-world civil defense branding is white +
+   blue, not a dark dashboard -- so like Red Cross (and unlike ER/HCC,
+   which just retint the shared dark theme), Civil Defense overrides the
+   full token set to flip console-base.css into a light theme. Every
+   structural rule in console-base.css reads these tokens, so redefining
+   them here re-themes the whole console. */
+
+:root {
+  color-scheme: light;
+
+  --bg: #f5f8ff;
+  --bg-strong: #dce8ff;
+  --surface: #ffffff;
+  --surface-subtle: #eef4ff;
+  --surface-glow: #e2ecff;
+  --border: #cddbf7;
+  --border-strong: #a9c0ec;
+  --ink: #12233f;
+  --muted: #5a6a86;
+
+  --accent: #1f6fe5;
+  --accent-contrast: #ffffff;
+  --accent-soft: #cfe0ff;
+  --accent-strong: color-mix(in srgb, var(--accent) 80%, black);
+
+  --peer: #d21f1f;
+  --peer-soft: #ffd9d0;
+
+  --bg-gradient-top: #eef4ff;
+  --bg-gradient-bottom: #ffffff;
+  --sidebar-tint-1: rgba(238, 244, 255, 0.98);
+  --sidebar-tint-2: rgba(255, 255, 255, 0.98);
+
+  --brand-logo: url("/common-static/assets/logo-civildefense.svg");
+  --peer-logo: url("/common-static/assets/logo-redcross.svg");
+}
+
+/* ---------------------------------------------------------------- vehicle tracking view */
+
+.vehicle-map {
+  height: 440px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+}

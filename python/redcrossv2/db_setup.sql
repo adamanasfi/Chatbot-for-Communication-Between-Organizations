@@ -30,6 +30,18 @@ CREATE TABLE resources (
 GRANT ALL ON TABLE resources TO redcross_app;
 GRANT USAGE, SELECT ON SEQUENCE resources_id_seq TO redcross_app;
 
+CREATE TABLE vehicles (
+    id          SERIAL PRIMARY KEY,
+    label       TEXT             NOT NULL,
+    lat         DOUBLE PRECISION NOT NULL,
+    lng         DOUBLE PRECISION NOT NULL,
+    status      TEXT             NOT NULL DEFAULT 'active',
+    updated_at  TIMESTAMPTZ      NOT NULL DEFAULT now()
+);
+
+GRANT ALL ON TABLE vehicles TO redcross_app;
+GRANT USAGE, SELECT ON SEQUENCE vehicles_id_seq TO redcross_app;
+
 -- =============================================================
 -- Helper: compute a jsonb diff between two rows (used for UPDATE)
 -- =============================================================
@@ -91,4 +103,8 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER resources_notify_trigger
 AFTER INSERT OR UPDATE OR DELETE ON resources
+FOR EACH ROW EXECUTE FUNCTION notify_case_change();
+
+CREATE TRIGGER vehicles_notify_trigger
+AFTER INSERT OR UPDATE OR DELETE ON vehicles
 FOR EACH ROW EXECUTE FUNCTION notify_case_change();

@@ -83,7 +83,8 @@ def row_to_dict(row) -> dict:
 
 
 def register_console_routes(
-    app, agent, default_employee_thread_id: str, dsn: str, static_dir: Path
+    app, agent, default_employee_thread_id: str, dsn: str, static_dir: Path,
+    *, extra_template_vars: dict[str, str] | None = None,
 ) -> None:
     # ------------------------------------------------------------------ agent routes
 
@@ -200,6 +201,8 @@ def register_console_routes(
 
     async def ui_page(request: Request):
         html = console_template.replace("__EMPLOYEE_THREAD_ID__", default_employee_thread_id)
+        for placeholder, value in (extra_template_vars or {}).items():
+            html = html.replace(placeholder, value)
         return HTMLResponse(html)
 
     # ------------------------------------------------------------------ register

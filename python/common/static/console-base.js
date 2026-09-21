@@ -97,18 +97,33 @@ function showView(name) {
 }
 
 // ---- chat ----
+// Maps a peer label (e.g. "Civil Defense Agent") to the console-kind key
+// its avatar/logo assets are named after (avatar-<kind>-agent.svg). Add an
+// entry here whenever a new org joins the shared console framework.
+const PEER_LABEL_TO_KIND = [
+  ["hcc", "hcc"],
+  ["civil defense", "civildefense"],
+  ["red cross", "redcross"],
+  ["er", "er"],
+];
+function inferConsoleKind(label) {
+  const normalized = (label || "").toLowerCase();
+  const match = PEER_LABEL_TO_KIND.find(([needle]) => normalized.includes(needle));
+  return match ? match[1] : "er";
+}
+
 function messageMeta(role, mode) {
   const isHuman = role.includes("human");
   if (mode === "employee" && isHuman) {
     return { cls: "human", name: HUMAN_LABEL, avatar: "director" };
   }
   if (mode === "employee") {
-    return { cls: "ai", name: AGENT_LABEL, avatar: CONSOLE_KIND === "hcc" ? "hcc-agent" : "er-agent" };
+    return { cls: "ai", name: AGENT_LABEL, avatar: `${CONSOLE_KIND}-agent` };
   }
   if (mode === "interagent" && isHuman) {
-    return { cls: "h-human", name: PEER_LABEL, avatar: PEER_LABEL.toLowerCase().includes("hcc") ? "hcc-agent" : "er-agent" };
+    return { cls: "h-human", name: PEER_LABEL, avatar: `${inferConsoleKind(PEER_LABEL)}-agent` };
   }
-  return { cls: "h-ai", name: AGENT_LABEL, avatar: CONSOLE_KIND === "hcc" ? "hcc-agent" : "er-agent" };
+  return { cls: "h-ai", name: AGENT_LABEL, avatar: `${CONSOLE_KIND}-agent` };
 }
 
 function renderMessageText(text) {

@@ -13,6 +13,7 @@ from langgraph.store.memory import InMemoryStore
 from langmem import create_manage_memory_tool, create_search_memory_tool
 
 from tools import RedCrossA2ATools
+from vehicle_tools import VehicleTools
 
 
 class RedCrossAgent:
@@ -46,6 +47,39 @@ class RedCrossAgent:
        - A resource in the Red Cross database has changed.
        - Acknowledge the change internally. Do NOT contact Civil Defense.
        - Only contact Civil Defense when the employee explicitly asks you to.
+
+    Vehicle location sharing:
+    - list_vehicles shows every vehicle's numeric id, label, and status.
+      share_vehicle_location and start_vehicle_location_stream both require
+      that numeric id, not a name -- if the employee refers to a vehicle by
+      name (e.g. "Ambulance 3") instead of giving its id directly, call
+      list_vehicles first to resolve which id that is. Never guess an id.
+    - share_vehicle_location sends a one-time location snapshot (a Google
+      Maps link, plus an address if available) for one vehicle to Civil
+      Defense. Use this for a single "where is this vehicle right now"
+      request. Call it exactly once per request -- never call it
+      repeatedly or in a loop to simulate continuous tracking, since each
+      call is a real message send and costs real tokens. If the employee
+      wants an updated position later, wait for them to ask again.
+    - start_vehicle_location_stream is for actual continuous/live
+      tracking: call it ONCE when the employee asks to continuously share
+      or live-track a vehicle's location with Civil Defense. It sends one
+      A2A message announcing the stream started, then every position
+      update after that is written directly into Civil Defense's own
+      tracking table -- not sent as a chat message, and not invoking
+      either your or Civil Defense's agent again per update, so a
+      long-running stream costs nothing further on either side. Civil
+      Defense sees the live position only if their employee actually asks
+      their agent to look it up. Never call share_vehicle_location or
+      start_vehicle_location_stream repeatedly yourself to fake this
+      behavior.
+    - stop_vehicle_location_stream ends a stream the employee started.
+      Call it when they ask to stop sharing a vehicle's location.
+    - Faking/simulating a vehicle's movement is NOT something you do --
+      there is a "Simulate" button on the Vehicles page for that (dev/test
+      only). If the employee asks you to simulate movement, tell them to
+      use that button; your job is only ever to share or stream whatever
+      position is actually in the database.
 
     Memory tools available:
     - manage_memory / search_memory for episodic, semantic, and procedural namespaces.
@@ -144,11 +178,20 @@ class RedCrossAgent:
         self.tools_service = RedCrossA2ATools(
             graph=None, interagent_thread_id=self.intercoord_thread_id
         )
+        self.vehicle_tools = VehicleTools(
+            dsn=os.getenv("REDCROSS_DB_DSN"),
+            civil_defense_base_url=os.getenv("CIVIL_DEFENSE_BASE_URL", "http://127.0.0.1:2024"),
+            notifier=self.tools_service.send_to_civil_defense_a2a,
+        )
 
         self.graph = create_react_agent(
             model=self.llm,
             tools=[
                 self.tools_service.send_to_civil_defense_a2a_tool,
+                self.vehicle_tools.list_vehicles_tool,
+                self.vehicle_tools.share_vehicle_location_tool,
+                self.vehicle_tools.start_vehicle_location_stream_tool,
+                self.vehicle_tools.stop_vehicle_location_stream_tool,
                 episodic_manage,
                 episodic_search,
                 semantic_manage,
